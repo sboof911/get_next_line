@@ -6,44 +6,57 @@
 /*   By: amaach <marvin@42.fr>                      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2019/10/29 13:55:17 by amaach            #+#    #+#             */
-/*   Updated: 2019/11/10 18:54:43 by amaach           ###   ########.fr       */
+/*   Updated: 2019/11/11 15:11:05 by amaach           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "get_next_line.h"
 
-char	*get_line(int fd, char *str)
+int		get_line(int fd, char **str)
 {
 	int		len;
 	char	*buffer;
 	char	*temp;
 
 	buffer = malloc(sizeof(char) * BUFFER_SIZE + 1);
-	if (!str)
-		str = ft_strdup("");
-	while (ft_strchr(str, '\n') == NULL)
+	if (!*str)
+		*str = ft_strdup("");
+	while (ft_strchr(*str, '\n') == NULL)
 	{
-		if ((len = read(fd, buffer, BUFFER_SIZE)) <= 0)
+		if ((len = read(fd, buffer, BUFFER_SIZE)) < 0)
 		{
 			free(buffer);
-			return (0);
+			return (-1);
 		}
 		buffer[len] = '\0';
-		temp = str;
-		str = ft_strjoin(str, buffer);
+		temp = *str;
+		*str = ft_strjoin(*str, buffer);
 		free(temp);
 		if (len == 0 || str[0] == '\0')
 			break;
 	}
 	free(buffer);
-	return (str);
+	return (len);
+}
+int		get_endofline(int i, char **str, char **line)
+{
+	if ((!ft_strchr(*str, '\n')) && (*str == NULL)) 
+	{
+		*line = ft_strdup("");
+		return (0);
+	}
+	else if (!ft_strchr(*str, '\n') && i == 0)
+	{
+		*line = *str;
+		*str = NULL;
+		return (0);
+	}
+	return (1);
 }
 
 int		get_error(int fd, char **line)
 {
-	char	c;
-
-	if (fd < 0 || !line || BUFFER_SIZE < 0 || read(fd, &c, 0) < 0)
+	if (fd < 0 || !line || BUFFER_SIZE < 0)
 		return (1);
 	return (0);
 }
@@ -53,28 +66,21 @@ int		get_next_line(int fd, char **line)
 	static char	*str;
 	size_t		len;
 	char		*temp;
+	int			i;
 
 	len = 0;
 	if (get_error(fd, line))
 		return (-1);
-	if ((str = get_line(fd, str)) == NULL)
+	i = get_line(fd, &str);
+	if (i == -1)
+		return (-1);
+	if ((get_endofline(i, &str, line) == 0) && i == 0)
 		return (0);
-	if (!(ft_strchr(str, '\n')))
-	{
-		if (!(*line = ft_strdup(str)))
-			return (-1);
-		free(str);
-		str = NULL;
-		return (0);
-	}
-	else
-	{
-		while(str[len] != '\0' && str[len] != '\n')
-			len++;
-		temp = str;
-		*line = ft_substr(str, 0, len);
-		str = ft_strdup(temp + len + 1);
-		free(temp);
-		return (1);
-	}
+	while(str[len] != '\0' && str[len] != '\n')
+		len++;
+	temp = str;
+	*line = ft_substr(str, 0, len);
+	str = ft_strdup(temp + len + 1);
+	free(temp);
+	return (1);
 }
